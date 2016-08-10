@@ -396,7 +396,12 @@
      * Signed zero.
      * @type {!Long}
      */
-    Long.ZERO = ZERO;
+    Object.defineProperty(Long, 'ZERO', {
+        enumerable: true,
+        get: function() {
+            return ZERO.clone();
+        }
+    });
 
     /**
      * @type {!Long}
@@ -408,7 +413,12 @@
      * Unsigned zero.
      * @type {!Long}
      */
-    Long.UZERO = UZERO;
+    Object.defineProperty(Long, 'UZERO', {
+        enumerable: true,
+        get: function() {
+            return UZERO.clone();
+        }
+    });
 
     /**
      * @type {!Long}
@@ -420,7 +430,12 @@
      * Signed one.
      * @type {!Long}
      */
-    Long.ONE = ONE;
+    Object.defineProperty(Long, 'ONE', {
+        enumerable: true,
+        get: function() {
+            return ONE.clone();
+        }
+    });
 
     /**
      * @type {!Long}
@@ -432,7 +447,12 @@
      * Unsigned one.
      * @type {!Long}
      */
-    Long.UONE = UONE;
+    Object.defineProperty(Long, 'UONE', {
+        enumerable: true,
+        get: function() {
+            return UONE.clone();
+        }
+    });
 
     /**
      * @type {!Long}
@@ -444,7 +464,12 @@
      * Signed negative one.
      * @type {!Long}
      */
-    Long.NEG_ONE = NEG_ONE;
+    Object.defineProperty(Long, 'NEG_ONE', {
+        enumerable: true,
+        get: function() {
+            return NEG_ONE.clone();
+        }
+    });
 
     /**
      * @type {!Long}
@@ -456,7 +481,12 @@
      * Maximum signed value.
      * @type {!Long}
      */
-    Long.MAX_VALUE = MAX_VALUE;
+    Object.defineProperty(Long, 'MAX_VALUE', {
+        enumerable: true,
+        get: function() {
+            return MAX_VALUE.clone();
+        }
+    });
 
     /**
      * @type {!Long}
@@ -468,7 +498,12 @@
      * Maximum unsigned value.
      * @type {!Long}
      */
-    Long.MAX_UNSIGNED_VALUE = MAX_UNSIGNED_VALUE;
+    Object.defineProperty(Long, 'MAX_UNSIGNED_VALUE', {
+        enumerable: true,
+        get: function() {
+            return MAX_UNSIGNED_VALUE.clone();
+        }
+    });
 
     /**
      * @type {!Long}
@@ -480,7 +515,12 @@
      * Minimum signed value.
      * @type {!Long}
      */
-    Long.MIN_VALUE = MIN_VALUE;
+    Object.defineProperty(Long, 'MIN_VALUE', {
+        enumerable: true,
+        get: function() {
+            return MIN_VALUE.clone();
+        }
+    });
 
     /**
      * @alias Long.prototype
@@ -524,11 +564,14 @@
                 // We need to change the Long value before it can be negated, so we remove
                 // the bottom-most digit in this base and then recurse to do the rest.
                 var radixLong = fromNumber(radix),
-                    div = this.div(radixLong),
-                    rem1 = div.mul(radixLong).sub(this);
+                    div = this.clone().div(radixLong),
+                    rem1 = div.clone().mul(radixLong).sub(this);
+                // console.log('returning negative', div.toString(radix) + rem1.toInt().toString(radix));
                 return div.toString(radix) + rem1.toInt().toString(radix);
-            } else
-                return '-' + this.neg().toString(radix);
+            } else {
+                // console.log('negative other', '-' + this.clone().neg().toString(radix));
+                return '-' + this.clone().neg().toString(radix);
+            }
         }
 
         // Do several (6) digits each time through the loop, so as to
@@ -537,9 +580,10 @@
             rem = this;
         var result = '';
         while (true) {
-            var remDiv = rem.div(radixToPower),
-                intval = rem.sub(remDiv.mul(radixToPower)).toInt() >>> 0,
+            var remDiv = rem.clone().div(radixToPower.clone()),
+                intval = rem.clone().sub(remDiv.clone().mul(radixToPower.clone())).toInt() >>> 0,
                 digits = intval.toString(radix);
+            // console.log('digits:', digits);
             rem = remDiv;
             if (rem.isZero())
                 return digits + result;
@@ -783,7 +827,7 @@
     LongPrototype.negate = function negate() {
         if (!this.unsigned && this.eq(MIN_VALUE))
             return MIN_VALUE;
-        return this.not().add(ONE);
+        return this.not().add(ONE.clone());
     };
 
     /**
@@ -862,12 +906,22 @@
             return ZERO.clone();
         if (!isLong(multiplier))
             multiplier = fromValue(multiplier);
+        else
+            multiplier = multiplier.clone();
         if (multiplier.isZero())
             return ZERO.clone();
-        if (this.eq(MIN_VALUE))
-            return multiplier.isOdd() ? MIN_VALUE.clone() : ZERO.clone();
-        if (multiplier.eq(MIN_VALUE))
-            return this.isOdd() ? MIN_VALUE.clone() : ZERO.clone();
+        if (this.eq(MIN_VALUE)) {
+            var value = multiplier.isOdd() ? MIN_VALUE : ZERO;
+            this.low = value.low;
+            this.high = value.high;
+            return this;
+        }
+        if (multiplier.eq(MIN_VALUE)) {
+            value = this.isOdd() ? MIN_VALUE : ZERO;
+            this.low = value.low;
+            this.high = value.high;
+            return this;
+        }
 
         if (this.isNegative()) {
             if (multiplier.isNegative())
@@ -879,7 +933,6 @@
 
         // If both longs are small, use float multiplication
         if (this.lt(TWO_PWR_24) && multiplier.lt(TWO_PWR_24)) {
-
             return this.fromNumber(this.toNumber() * multiplier.toNumber(), this.unsigned);
         }
 
@@ -954,11 +1007,16 @@
             // This section is only relevant for signed longs and is derived from the
             // closure library as a whole.
             if (this.eq(MIN_VALUE)) {
-                if (divisor.eq(ONE) || divisor.eq(NEG_ONE))
-                    return MIN_VALUE;  // recall that -MIN_VALUE == MIN_VALUE
-                else if (divisor.eq(MIN_VALUE))
-                    return ONE;
-                else {
+                if (divisor.eq(ONE) || divisor.eq(NEG_ONE)) {
+                    // recall that -MIN_VALUE == MIN_VALUE
+                    this.low = MIN_VALUE.low;
+                    this.high = MIN_VALUE.high;
+                    return this;
+                } else if (divisor.eq(MIN_VALUE)) {
+                    this.low = ONE.low;
+                    this.high = ONE.high;
+                    return this;
+                } else {
                     // At this point, we have |other| >= 2, so |this/other| < |MIN_VALUE|.
                     var halfThis = this.clone().shr(1);
                     approx = halfThis.div(divisor).shl(1);
@@ -975,30 +1033,32 @@
                         return this;
                     }
                 }
-            } else if (divisor.eq(MIN_VALUE))
+            } else if (divisor.eq(MIN_VALUE)) {
                 zero = this.unsigned ? UZERO : ZERO;
                 this.low = zero.low;
                 this.high = zero.high;
+                return this;
+            }
             if (this.isNegative()) {
                 if (divisor.isNegative())
                     return this.neg().div(divisor.neg());
                 return this.neg().div(divisor).neg();
             } else if (divisor.isNegative())
                 return this.div(divisor.neg()).neg();
-            res = ZERO;
+            res = ZERO.clone();
         } else {
             // The algorithm below has not been made for unsigned longs. It's therefore
             // required to take special care of the MSB prior to running it.
             if (!divisor.unsigned)
-                divisor = divisor.toUnsigned();
+                divisor = divisor.clone().toUnsigned();
             if (divisor.gt(this)) {
                 this.low = UZERO.low;
                 this.high = UZERO.high;
                 return this;
             }
-            if (divisor.gt(this.shru(1))) // 15 >>> 1 = 7 ; with divisor = 8 ; true
-                return UONE;
-            res = UZERO;
+            if (divisor.gt(this.clone().shru(1))) // 15 >>> 1 = 7 ; with divisor = 8 ; true
+                return UONE.clone();
+            res = UZERO.clone();
         }
 
         // Repeat the following until the remainder is less than other:  find a
@@ -1020,20 +1080,21 @@
             // Decrease the approximation until it is smaller than the remainder.  Note
             // that if it is too large, the product overflows and is negative.
                 approxRes = fromNumber(approx),
-                approxRem = approxRes.mul(divisor);
+                approxRem = approxRes.clone().mul(divisor);
             while (approxRem.isNegative() || approxRem.gt(rem)) {
                 approx -= delta;
                 approxRes = fromNumber(approx, this.unsigned);
-                approxRem = approxRes.mul(divisor);
+                approxRem = approxRes.clone().mul(divisor);
             }
 
             // We know the answer can't be zero... and actually, zero would cause
             // infinite recursion since we would make no progress.
             if (approxRes.isZero())
-                approxRes = ONE;
+                approxRes = ONE.clone();
 
-            res = res.add(approxRes);
-            rem = rem.sub(approxRem);
+
+            res = res.clone().add(approxRes.clone());
+            rem = rem.clone().sub(approxRem.clone());
         }
 
         this.low = res.low;
