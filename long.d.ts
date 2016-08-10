@@ -350,4 +350,5 @@ declare class Long
 
 declare module 'long-mutable' {
     export = Long;
+    export {Long};
 }
