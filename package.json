@@ -1,7 +1,10 @@
 {
-    "name": "long",
-    "version": "3.2.0",
-    "author": "Daniel Wirtz <dcode@dcode.io>",
+    "name": "long-mutable",
+    "version": "3.2.2",
+    "authors": [
+        "Daniel Wirtz <dcode@dcode.io>",
+        "Paul Sauve <paul@burngames.net>"
+    ],
     "description": "A Long class for representing a 64-bit two's-complement integer value.",
     "main": "dist/long.js",
     "repository": {
