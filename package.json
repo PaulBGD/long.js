@@ -1,12 +1,13 @@
 {
     "name": "long-mutable",
-    "version": "3.2.4",
+    "version": "3.2.5",
     "authors": [
         "Daniel Wirtz <dcode@dcode.io>",
         "Paul Sauve <paul@burngames.net>"
     ],
     "description": "A Long class for representing a 64-bit two's-complement integer value.",
     "main": "dist/long.js",
+    "typings": "long.d.ts",
     "repository": {
         "type": "git",
         "url": "https://github.com/dcodeIO/long.js.git"
